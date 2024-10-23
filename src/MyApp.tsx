@@ -1,24 +1,86 @@
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+
+type Header = {
+  id: string;
+  key: string;
+  value: string;
+};
 
 export default function MyApp() {
-  const [url, setUrl] = useState("https://jsonplaceholder.typicode.com/posts");
+  const [url, setUrl] = useState(
+    "https://api.pascalmontessori.sch.id/api/v1/users/me"
+  );
   const [method, setMethod] = useState("GET");
   const [body, setBody] = useState("");
+  const [headers, setHeaders] = useState<Header[]>(() => [
+    { id: uuidv4(), key: "", value: "" },
+    { id: uuidv4(), key: "", value: "" },
+  ]);
+  const [params, setParams] = useState<
+    { id: string; key: string; value: string }[]
+  >(() => [
+    { id: uuidv4(), key: "", value: "" },
+    { id: uuidv4(), key: "", value: "" },
+  ]);
+
+  let newHeaders = headers;
+  if (body !== "") {
+    newHeaders = headers.concat([
+      { id: uuidv4(), key: "Content-Type", value: "application/json" },
+      { id: uuidv4(), key: "Accept", value: "application/json" },
+    ]);
+  }
+
+  const headersObj = newHeaders.reduce((acc, h) => {
+    if (h.key && h.value) {
+      acc[h.key] = h.value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
+  const paramsObj = params.reduce((acc, p) => {
+    if (p.key && p.value) {
+      acc[p.key] = p.value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
 
   const theQuery = useQuery({
-    queryKey: ["theQuery", url, method, body],
-    queryFn: () => {
-      if (method === "GET") {
-        return fetch(url).then((res) => res.text());
-      }
-      return fetch(url, { method, body }).then((res) => res.text());
+    queryKey: ["theQuery", url, method, body, headersObj, paramsObj],
+    queryFn: async () => {
+      const res = await axios({
+        url,
+        method,
+        params: method === "GET" ? paramsObj : undefined,
+        headers: headersObj,
+        data: JSON.parse(body),
+      });
+      return res.data;
     },
     enabled: false,
   });
 
+  function addHeaderRow() {
+    setHeaders([...headers, { id: uuidv4(), key: "", value: "" }]);
+  }
+
+  function removeHeaderRow(id: string) {
+    setHeaders(headers.filter((h) => h.id !== id));
+  }
+
+  function addParamRow() {
+    setParams([...params, { id: uuidv4(), key: "", value: "" }]);
+  }
+
+  function removeParamRow(id: string) {
+    setParams(params.filter((p) => p.id !== id));
+  }
+
   return (
-    <div className="w-full bg-slate-200 p-4">
+    <div className="w-full p-4">
       <div className="w-full flex gap-4">
         <select
           className="border border-gray-300 rounded-md p-2"
@@ -42,21 +104,108 @@ export default function MyApp() {
           Fetch
         </button>
       </div>
+      {/* eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbi1hZG1pbkBlbWFpbC5jb20iLCJpYXQiOjE3Mjk2NzY4NTcsImV4cCI6MTczMjI2ODg1N30.rXhjcGjHUtoXMn5SZO5OVzn3AwRnjuha5R4OQ76CUrg */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <p className="font-semibold">Headers</p>
+          <div className="space-y-1">
+            {headers.map((header) => (
+              <div key={header.id} className="space-x-1">
+                <input
+                  value={header.key}
+                  className="rounded-md p-1"
+                  placeholder="Key"
+                  onChange={(e) => {
+                    setHeaders(
+                      headers.map((h) =>
+                        h.id === header.id ? { ...h, key: e.target.value } : h
+                      )
+                    );
+                  }}
+                />
+                <input
+                  value={header.value}
+                  className="rounded-md p-1"
+                  placeholder="Value"
+                  onChange={(e) => {
+                    setHeaders(
+                      headers.map((h) =>
+                        h.id === header.id ? { ...h, value: e.target.value } : h
+                      )
+                    );
+                  }}
+                />
+                <button
+                  onClick={() => removeHeaderRow(header.id)}
+                  className="text-xs text-red-500"
+                >
+                  DELETE
+                </button>
+              </div>
+            ))}
+            <button onClick={addHeaderRow}>Add Header</button>
+          </div>
+          <p className="font-semibold mt-4">Params</p>
+          <div className="space-y-1">
+            {params.map((param) => (
+              <div key={param.id} className="space-x-1">
+                <input
+                  value={param.key}
+                  className="rounded-md p-1"
+                  placeholder="Key"
+                  onChange={(e) => {
+                    setParams(
+                      params.map((p) =>
+                        p.id === param.id ? { ...p, key: e.target.value } : p
+                      )
+                    );
+                  }}
+                />
+                <input
+                  value={param.value}
+                  className="rounded-md p-1"
+                  placeholder="Value"
+                  onChange={(e) => {
+                    setParams(
+                      params.map((p) =>
+                        p.id === param.id ? { ...p, value: e.target.value } : p
+                      )
+                    );
+                  }}
+                />
+                <button
+                  onClick={() => removeParamRow(param.id)}
+                  className="text-xs text-red-500"
+                >
+                  DELETE
+                </button>
+              </div>
+            ))}
+            <button onClick={addParamRow}>Add Param</button>
+          </div>
+        </div>
 
-      <div className="mt-4">
-        <p>Request Body</p>
-        <textarea
-          className="w-full p-2 rounded-md min-h-[100px]"
-          value={body}
-          placeholder="Enter your request body here (only for POST, PUT, PATCH)"
-          onChange={(e) => setBody(e.target.value)}
-        />
+        <div>
+          <p className="font-semibold">Request Body</p>
+          <textarea
+            className="w-full p-2 rounded-md min-h-[100px]"
+            value={body}
+            placeholder="Enter your request body here"
+            onChange={(e) => setBody(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="mt-4">
-        <label>Response</label>
+        <p className="font-semibold">Response</p>
         <div>
-          Status: <span className="font-bold">{theQuery.status}</span>
+          Status:{" "}
+          {theQuery.fetchStatus === "idle" ? null : (
+            <StatusBadge
+              status={theQuery.fetchStatus}
+              variant={theQuery.isSuccess ? "success" : "error"}
+            />
+          )}
         </div>
       </div>
 
@@ -66,6 +215,10 @@ export default function MyApp() {
           {isValidJson(theQuery.data ?? "")
             ? JSON.stringify(JSON.parse(theQuery.data ?? "{}"), null, 2)
             : theQuery.data}
+        </div>
+        <div>
+          <p className="font-semibold">Error</p>
+          <div>{theQuery.error?.message}</div>
         </div>
       </div>
     </div>
@@ -79,4 +232,21 @@ function isValidJson(str: string) {
   } catch {
     return false;
   }
+}
+
+type StatusBadgeProps = {
+  status: string;
+  variant: "success" | "error";
+};
+
+function StatusBadge({ status, variant }: StatusBadgeProps) {
+  return (
+    <span
+      className={`${
+        variant === "success" ? "bg-green-500" : "bg-red-500"
+      } text-white px-2 py-1 rounded-md`}
+    >
+      {status}
+    </span>
+  );
 }

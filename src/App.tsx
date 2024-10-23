@@ -4,7 +4,14 @@ import { useState } from "react";
 import MyApp from "./MyApp";
 
 function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { refetchOnWindowFocus: false, staleTime: 0, retry: false },
+        },
+      })
+  );
   return (
     <QueryClientProvider client={queryClient}>
       <MyApp />
