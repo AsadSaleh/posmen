@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-type Header = {
+type HeaderOrParam = {
   id: string;
   key: string;
   value: string;
@@ -15,13 +14,11 @@ export default function MyApp() {
   );
   const [method, setMethod] = useState("GET");
   const [body, setBody] = useState("");
-  const [headers, setHeaders] = useState<Header[]>(() => [
+  const [headers, setHeaders] = useState<HeaderOrParam[]>(() => [
     { id: uuidv4(), key: "", value: "" },
     { id: uuidv4(), key: "", value: "" },
   ]);
-  const [params, setParams] = useState<
-    { id: string; key: string; value: string }[]
-  >(() => [
+  const [params, setParams] = useState<HeaderOrParam[]>(() => [
     { id: uuidv4(), key: "", value: "" },
     { id: uuidv4(), key: "", value: "" },
   ]);
@@ -51,14 +48,15 @@ export default function MyApp() {
   const theQuery = useQuery({
     queryKey: ["theQuery", url, method, body, headersObj, paramsObj],
     queryFn: async () => {
-      const res = await axios({
-        url,
-        method,
-        params: method === "GET" ? paramsObj : undefined,
-        headers: headersObj,
-        data: JSON.parse(body),
-      });
-      return res.data;
+      const res = await fetch(
+        `${url}?${new URLSearchParams(paramsObj).toString()}`,
+        {
+          method,
+          headers: headersObj,
+          body: method === "GET" ? undefined : body,
+        }
+      );
+      return res.text();
     },
     enabled: false,
   });
@@ -105,7 +103,7 @@ export default function MyApp() {
         </button>
       </div>
       {/* eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbi1hZG1pbkBlbWFpbC5jb20iLCJpYXQiOjE3Mjk2NzY4NTcsImV4cCI6MTczMjI2ODg1N30.rXhjcGjHUtoXMn5SZO5OVzn3AwRnjuha5R4OQ76CUrg */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-col-1 lg:grid-cols-2 gap-4">
         <div>
           <p className="font-semibold">Headers</p>
           <div className="space-y-1">
@@ -188,7 +186,8 @@ export default function MyApp() {
         <div>
           <p className="font-semibold">Request Body</p>
           <textarea
-            className="w-full p-2 rounded-md min-h-[100px]"
+            disabled={method === "GET"}
+            className="w-full p-2 rounded-md min-h-[100px] disabled:bg-gray-100"
             value={body}
             placeholder="Enter your request body here"
             onChange={(e) => setBody(e.target.value)}
@@ -218,7 +217,7 @@ export default function MyApp() {
         </div>
         <div>
           <p className="font-semibold">Error</p>
-          <div>{theQuery.error?.message}</div>
+          <div>{JSON.stringify(theQuery.error, null, 2)}</div>
         </div>
       </div>
     </div>
