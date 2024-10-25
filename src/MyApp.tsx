@@ -10,7 +10,7 @@ type HeaderOrParam = {
 
 export default function MyApp() {
   const [url, setUrl] = useState(
-    "https://api.pascalmontessori.sch.id/api/v1/users/me"
+    "https://jsonplaceholder.typicode.com/todos/1"
   );
   const [method, setMethod] = useState("GET");
   const [body, setBody] = useState("");
@@ -75,6 +75,20 @@ export default function MyApp() {
 
   function removeParamRow(id: string) {
     setParams(params.filter((p) => p.id !== id));
+  }
+
+  function renderStatus() {
+    if (!theQuery.isFetching && theQuery.isSuccess) {
+      return <StatusBadge status={"Success"} variant={"success"} />;
+    }
+    if (!theQuery.isFetching && !theQuery.isSuccess) {
+      return <StatusBadge status={"Error"} variant={"error"} />;
+    }
+    if (theQuery.isFetching) {
+      return <StatusBadge status={"Fetching..."} variant={"fetching"} />;
+    }
+
+    return null;
   }
 
   return (
@@ -197,28 +211,25 @@ export default function MyApp() {
 
       <div className="mt-4">
         <p className="font-semibold">Response</p>
-        <div>
-          Status:{" "}
-          {theQuery.fetchStatus === "idle" ? null : (
-            <StatusBadge
-              status={theQuery.fetchStatus}
-              variant={theQuery.isSuccess ? "success" : "error"}
-            />
-          )}
-        </div>
+        <div>Status: {renderStatus()}</div>
       </div>
 
       <div className="mt-2">
-        <label>Data</label>
-        <div>
-          {isValidJson(theQuery.data ?? "")
-            ? JSON.stringify(JSON.parse(theQuery.data ?? "{}"), null, 2)
-            : theQuery.data}
-        </div>
-        <div>
-          <p className="font-semibold">Error</p>
-          <div>{JSON.stringify(theQuery.error, null, 2)}</div>
-        </div>
+        {theQuery.data ? (
+          <>
+            <label>Data</label>
+            <div>
+              {isValidJson(theQuery.data ?? "")
+                ? JSON.stringify(JSON.parse(theQuery.data ?? "{}"), null, 2)
+                : theQuery.data}
+            </div>
+          </>
+        ) : (
+          <div>
+            <p className="font-semibold">Error</p>
+            <div>{JSON.stringify(theQuery.error, null, 2)}</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -235,14 +246,18 @@ function isValidJson(str: string) {
 
 type StatusBadgeProps = {
   status: string;
-  variant: "success" | "error";
+  variant: "success" | "error" | "fetching";
 };
 
 function StatusBadge({ status, variant }: StatusBadgeProps) {
   return (
     <span
       className={`${
-        variant === "success" ? "bg-green-500" : "bg-red-500"
+        variant === "success"
+          ? "bg-green-500"
+          : variant === "error"
+          ? "bg-red-500"
+          : "bg-blue-500"
       } text-white px-2 py-1 rounded-md`}
     >
       {status}
