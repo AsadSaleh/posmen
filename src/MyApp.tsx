@@ -81,7 +81,7 @@ export default function MyApp() {
     if (!theQuery.isFetching && theQuery.isSuccess) {
       return <StatusBadge status={"Success"} variant={"success"} />;
     }
-    if (!theQuery.isFetching && !theQuery.isSuccess) {
+    if (!theQuery.isFetching && !theQuery.isSuccess && !theQuery.isPending) {
       return <StatusBadge status={"Error"} variant={"error"} />;
     }
     if (theQuery.isFetching) {
